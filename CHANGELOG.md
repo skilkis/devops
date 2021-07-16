@@ -5,13 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning].
 
-## [0.2.0] - 2020-02-19
-
-### Added
-
-- Branch settings pictures and explanation to README
-
-## [0.1.0] - 2020-02-19
+## [0.1.0] - 2021-07-16
 
 ### Added
 
