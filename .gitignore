@@ -1,0 +1,17 @@
+# Coverage files
+.coverage
+cov.xml
+
+# Compiled Python Files, Cache, and Build Artifacts
+.eggs
+__pycache__
+build
+dist
+*.egg-info
+
+# Pytest Cache
+.pytest_cache
+
+# IDE project folders
+.vscode
+.idea
