@@ -1,0 +1,73 @@
+name: release
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - closed
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    # Only runs if the PR is merged and not closed
+    if: github.event.pull_request.merged == true
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Extract PR Branch Name
+        uses: mdecoleman/pr-branch-name@1.0.0
+        id: extract_branch
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract Version Name from Branch
+        shell: bash
+        id: extract_version
+        run: |
+          branch=${{ steps.extract_branch.outputs.branch }}
+          version=$(.github/scripts/extract_version.sh $branch)
+          echo "::set-output name=version::${version}"
+      - name: Tag w/ Version
+        uses: anothrNick/github-tag-action@1.34.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUSTOM_TAG: v${{ steps.extract_version.outputs.version }}
+      - name: Get Changelog Entry
+        id: changelog
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          version: ${{ steps.extract_version.outputs.version }}
+          path: ./CHANGELOG.md
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # The correct tag here should use the GitHub ref
+          tag_name: v${{ steps.changelog.outputs.version }}
+          release_name: Release ${{ steps.changelog.outputs.version }}
+          body: ${{ steps.changelog.outputs.changes }}
+          prerelease: ${{ steps.changelog_reader.outputs.status == 'prereleased' }}
+          draft: ${{ steps.changelog_reader.outputs.status == 'unreleased' }}
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: develop
+      - name: Merge Release Changes into Develop
+        run: |
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions"
+          git fetch
+          git checkout ${{ steps.extract_branch.outputs.branch }}
+          git pull
+          git checkout develop
+          git merge ${{ steps.extract_branch.outputs.branch }}
+      - name: Create PR to Update the Development Branch
+        uses: peter-evans/create-pull-request@v3
+        with:
+          base: develop
+          branch: ${{ steps.extract_branch.outputs.branch }}
+          title: Update develop from ${{ steps.extract_branch.outputs.branch }}
+          delete-branch: false

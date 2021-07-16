@@ -1,0 +1,36 @@
+name: changelog
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+jobs:
+  changelog:
+    name: Check Changelog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Extract PR Branch Name
+        uses: mdecoleman/pr-branch-name@1.0.0
+        id: extract_branch
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract Version Name from Branch
+        shell: bash
+        id: extract_version
+        run: |
+          branch=${{ steps.extract_branch.outputs.branch }}
+          version=$(.github/scripts/extract_version.sh $branch)
+          echo "::set-output name=version::${version}"
+      - name: Get Changelog Entry
+        id: changelog
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          version: ${{ steps.extract_version.outputs.version }}
+          path: ./CHANGELOG.md

@@ -1,0 +1,47 @@
+name: test
+on:
+  pull_request:
+    branches:
+      - master
+      - develop
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Can test multiple Python versions by extending this list
+        python-version: [3.7]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Restoring Downloaded Packages
+      uses: actions/cache@v1
+      id: cache
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.cfg') }}-${{ matrix.python-version }}
+    - name: Installing Package and Dependencies
+      # All project dependencies have to be specified in setup.cfg!
+      run: |
+        python -m pip install --upgrade pip
+        pip install .[dev]
+    - name: Linting w/ Pylint
+      run: |
+        pip install pylint
+        pylint $(git ls-files '*.py') --exit-zero
+    - name: Unit Testing with Pytest
+      run: |
+        pip install pytest
+        pytest
+    - name: Checking Code Coverage
+      run: |
+        coverage report --fail-under=50
